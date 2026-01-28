@@ -1,105 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Package, Settings, RefreshCw, AlertCircle, CheckCircle, Send, Loader, Upload, FileText, X, Users, Plus, Trash2, Building2 } from 'lucide-react';
-
-// ============================================================================
-// VINOSHIPPER API CLIENT
-// ============================================================================
-const vinoshipperAPI = {
-  baseUrl: 'https://www.vinoshipper.com/api',
-  
-  getAuthHeader(apiKey, apiSecret) {
-    const credentials = btoa(`${apiKey}:${apiSecret}`);
-    return `Basic ${credentials}`;
-  },
-  
-  async getInventory(apiKey) {
-    try {
-      const [key, secret] = apiKey.includes(':') ? apiKey.split(':') : [apiKey, ''];
-      
-      const response = await fetch(`${this.baseUrl}/products`, {
-        method: 'GET',
-        headers: {
-          'Authorization': this.getAuthHeader(key, secret),
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || `API Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      return data.products?.map(item => ({
-        sku: item.sku || item.product_code || item.id,
-        name: item.name || item.title || item.description,
-        quantity: item.quantity || item.stock || item.inventory_count || 0,
-        lastSync: new Date()
-      })) || [];
-      
-    } catch (error) {
-      console.error('Vinoshipper API Error (getInventory):', error);
-      throw error;
-    }
-  },
-
-  async updateInventory(apiKey, sku, quantity) {
-    try {
-      const [key, secret] = apiKey.includes(':') ? apiKey.split(':') : [apiKey, ''];
-      
-      const response = await fetch(`${this.baseUrl}/products/${sku}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': this.getAuthHeader(key, secret),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ quantity })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || `Update failed: ${response.status}`);
-      }
-
-      return await response.json();
-      
-    } catch (error) {
-      console.error('Vinoshipper API Error (updateInventory):', error);
-      throw error;
-    }
-  },
-
-  async createProduct(apiKey, product) {
-    try {
-      const [key, secret] = apiKey.includes(':') ? apiKey.split(':') : [apiKey, ''];
-      
-      const response = await fetch(`${this.baseUrl}/products`, {
-        method: 'POST',
-        headers: {
-          'Authorization': this.getAuthHeader(key, secret),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sku: product.sku,
-          name: product.name,
-          quantity: product.quantity,
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || `Create failed: ${response.status}`);
-      }
-
-      return await response.json();
-      
-    } catch (error) {
-      console.error('Vinoshipper API Error (createProduct):', error);
-      throw error;
-    }
-  }
-};
+import { VinoshipperClient, VinoshipperApiError } from './src/client/VinoshipperClient';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -236,11 +137,18 @@ const VinoshipperAgent = () => {
 
   const loadInventory = async (apiKey) => {
     try {
-      const data = await vinoshipperAPI.getInventory(apiKey);
+      const client = new VinoshipperClient(apiKey);
+      const data = await client.getInventory();
       setInventory(data);
       addSyncLog(`Loaded ${data.length} items from Vinoshipper`, 'success');
     } catch (error) {
       console.error('Failed to load inventory:', error);
+
+      // Log specific error message if available
+      if (error instanceof VinoshipperApiError) {
+        addSyncLog(`API Error: ${error.message}`, 'error');
+      }
+
       // Fallback to mock data for demo
       const mockInventory = [
         { sku: 'WINE-001', name: 'Cabernet Sauvignon 2021', quantity: 45, lastSync: new Date() },
@@ -267,8 +175,9 @@ const VinoshipperAgent = () => {
       addMessage('system', `✓ Uploaded ${file.name} with ${parsed.length} items for ${selectedClient.name}. Ready to sync!`);
       addSyncLog(`CSV uploaded: ${parsed.length} items for ${selectedClient.name}`, 'success');
     } catch (error) {
-      addMessage('system', `Error parsing CSV: ${error.message}`);
-      addSyncLog(`CSV upload failed: ${error.message}`, 'error');
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      addMessage('system', `Error parsing CSV: ${errorMsg}`);
+      addSyncLog(`CSV upload failed: ${errorMsg}`, 'error');
     }
   };
 
@@ -438,33 +347,34 @@ Be conversational and help manage their multi-client operations efficiently.`;
   const performFullSync = async () => {
     if (!csvInventory || !selectedClient) return;
 
+    const client = new VinoshipperClient(selectedClient.apiKey);
     addSyncLog(`Starting full sync for ${selectedClient.name}: ${csvInventory.length} items`, 'info');
-    
+
     for (const csvItem of csvInventory) {
       await new Promise(resolve => setTimeout(resolve, 600));
-      
+
       const vsItem = inventory.find(i => i.sku === csvItem.sku);
-      
+
       try {
         if (!vsItem) {
-          await vinoshipperAPI.createProduct(selectedClient.apiKey, {
+          await client.createProduct({
             sku: csvItem.sku,
             name: csvItem.name,
             quantity: csvItem.quantity
           });
           addSyncLog(`${selectedClient.name}: Created ${csvItem.sku} (${csvItem.quantity} units)`, 'success');
         } else if (vsItem.quantity !== csvItem.quantity) {
-          await vinoshipperAPI.updateInventory(selectedClient.apiKey, csvItem.sku, csvItem.quantity);
+          await client.updateInventory(csvItem.sku, csvItem.quantity);
           addSyncLog(`${selectedClient.name}: Updated ${csvItem.sku}: ${vsItem.quantity} → ${csvItem.quantity}`, 'success');
         } else {
           addSyncLog(`${selectedClient.name}: ${csvItem.sku} already in sync`, 'info');
         }
-        
+
         setInventory(prev => {
           const existing = prev.find(i => i.sku === csvItem.sku);
           if (existing) {
-            return prev.map(i => 
-              i.sku === csvItem.sku 
+            return prev.map(i =>
+              i.sku === csvItem.sku
                 ? { ...i, quantity: csvItem.quantity, lastSync: new Date() }
                 : i
             );
@@ -473,10 +383,13 @@ Be conversational and help manage their multi-client operations efficiently.`;
           }
         });
       } catch (error) {
-        addSyncLog(`${selectedClient.name}: Failed to sync ${csvItem.sku} - ${error.message}`, 'error');
+        const errorMsg = error instanceof VinoshipperApiError
+          ? error.message
+          : (error instanceof Error ? error.message : 'Unknown error');
+        addSyncLog(`${selectedClient.name}: Failed to sync ${csvItem.sku} - ${errorMsg}`, 'error');
       }
     }
-    
+
     addSyncLog(`✓ Sync completed for ${selectedClient.name}: ${csvInventory.length} items processed`, 'success');
   };
 

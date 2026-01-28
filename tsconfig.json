@@ -13,8 +13,7 @@
     "isolatedModules": true,
     "moduleResolution": "bundler",
     "noEmit": true,
-    "noImplicitAny": false,
-    "suppressImplicitAnyIndexErrors": true
+    "noImplicitAny": false
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
