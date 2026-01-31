@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import VinoshipperAgent from '../multi-account-proto';
+import VinoshipperAgent from './VinoshipperAgent';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
