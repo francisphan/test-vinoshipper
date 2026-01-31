@@ -11,6 +11,7 @@ interface SettingsProps {
   onRemoveClient: (clientId: string) => void;
   onSave: () => void;
   onCancel?: () => void;
+  onDemoMode?: () => void;
   isConfigured: boolean;
 }
 
@@ -22,6 +23,7 @@ export const Settings: React.FC<SettingsProps> = ({
   onRemoveClient,
   onSave,
   onCancel,
+  onDemoMode,
   isConfigured,
 }) => {
   const [showClientManager, setShowClientManager] = useState(false);
@@ -101,6 +103,29 @@ export const Settings: React.FC<SettingsProps> = ({
             >
               Cancel
             </button>
+          )}
+
+          {!isConfigured && onDemoMode && (
+            <>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white px-4 text-gray-500">or</span>
+                </div>
+              </div>
+
+              <button
+                onClick={onDemoMode}
+                className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg hover:bg-gray-200 transition font-semibold border border-gray-300"
+              >
+                Try Demo Mode (No API Keys Required)
+              </button>
+              <p className="text-xs text-gray-500 text-center mt-2">
+                Demo mode uses mock data and simulated AI responses
+              </p>
+            </>
           )}
         </div>
       </div>

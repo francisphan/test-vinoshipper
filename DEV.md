@@ -23,6 +23,50 @@ npm run dev
 
 The server will start at `http://localhost:5173` (or the next available port).
 
+---
+
+## Running Modes
+
+### Demo Mode (No API Keys Required)
+
+To explore the application without any API keys:
+
+1. Start the dev server: `npm run dev`
+2. Open `http://localhost:5173` in your browser
+3. On the Settings screen, click **"Try Demo Mode (No API Keys Required)"**
+4. The app will load with sample wine producer accounts and simulated AI responses
+
+Demo mode is great for:
+- Exploring the UI and features
+- Testing the application flow
+- Development and debugging without API costs
+
+**Limitations in Demo Mode:**
+- AI responses are simulated (not real Claude API calls)
+- Inventory data is mock data
+- Sync operations are simulated
+
+### Production Mode (Real API Keys)
+
+To use the full application with real functionality:
+
+1. Start the dev server: `npm run dev`
+2. Open `http://localhost:5173` in your browser
+3. On the Settings screen, enter your **Claude API Key** (from [Anthropic Console](https://console.anthropic.com/))
+4. Click **"Manage Clients"** and add your Vinoshipper client accounts:
+   - Client Name (e.g., "My Winery")
+   - Vinoshipper API Key:Secret
+   - Select fulfillment center
+5. Click **"Save & Connect"**
+
+**Required API Keys:**
+| Key | Source | Purpose |
+|-----|--------|---------|
+| Claude API Key | [console.anthropic.com](https://console.anthropic.com/) | AI assistant functionality |
+| Vinoshipper API Key:Secret | Vinoshipper account | Inventory management |
+
+---
+
 ## Available Scripts
 
 | Command | Description |
@@ -52,7 +96,8 @@ src/
 │   ├── useSyncLogs.ts
 │   └── useConfiguration.ts
 ├── services/               # Business logic services
-│   ├── claudeService.ts
+│   ├── claudeService.ts    # Real Claude API integration
+│   ├── mockClaudeService.ts # Demo mode simulated responses
 │   ├── agentService.ts
 │   └── syncService.ts
 ├── utils/                  # Utility functions
@@ -61,11 +106,10 @@ src/
     └── VinoshipperClient.ts
 ```
 
-## Configuration
+## Configuration Storage
 
-The application requires the following configuration (set via the Settings UI):
+Configuration is stored in browser localStorage:
+- `claude_api_key` - Your Anthropic API key
+- `clients` - Array of Vinoshipper client configurations
 
-1. **Claude API Key** - Your Anthropic API key for AI assistant functionality
-2. **Client Accounts** - Vinoshipper client credentials (API Key:Secret format)
-
-Configuration is stored in browser localStorage.
+To reset all configuration, clear your browser's localStorage for the development URL.

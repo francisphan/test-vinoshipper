@@ -10,6 +10,7 @@ import {
 } from './hooks';
 import {
   sendMessage,
+  sendDemoMessage,
   buildSystemPrompt,
   executeAgentActions,
   performFullSync,
@@ -27,6 +28,7 @@ const VinoshipperAgent: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -77,6 +79,32 @@ const VinoshipperAgent: React.FC = () => {
       loadInventory(savedClients[0].apiKey);
     }
   }, []);
+
+  // Demo mode handler
+  const handleEnterDemoMode = () => {
+    // Set up demo clients
+    const demoClients: Client[] = [
+      { id: 'demo-1', name: 'Demo Winery', apiKey: 'demo-key', fulfillment: 'Hydra (NY)' },
+      { id: 'demo-2', name: 'Sample Vineyards', apiKey: 'demo-key-2', fulfillment: 'ShipEz (CA)' },
+    ];
+
+    saveClients(demoClients);
+    setSelectedClient(demoClients[0]);
+    setIsDemoMode(true);
+    setIsConfigured(true);
+
+    addMessage('system', `Welcome to Demo Mode! Managing 2 sample wine producer accounts.
+
+You can try commands like:
+• "Sync all items"
+• "Switch to Sample Vineyards"
+• "Check all clients"
+• "Compare inventory"
+
+Note: This is a demonstration with simulated data.`);
+
+    addSyncLog('Demo mode activated', 'success');
+  };
 
   // Handlers
   const handleSaveConfiguration = () => {
@@ -157,8 +185,14 @@ const VinoshipperAgent: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      const systemPrompt = buildSystemPrompt(clients, selectedClient, inventory, csvInventory);
-      const response = await sendMessage(claudeApiKey, userMsg, systemPrompt);
+      let response: string;
+
+      if (isDemoMode) {
+        response = await sendDemoMessage(userMsg);
+      } else {
+        const systemPrompt = buildSystemPrompt(clients, selectedClient, inventory, csvInventory);
+        response = await sendMessage(claudeApiKey, userMsg, systemPrompt);
+      }
 
       addMessage('assistant', response);
       await executeAgentActions(response, {
@@ -222,6 +256,7 @@ const VinoshipperAgent: React.FC = () => {
         onRemoveClient={handleRemoveClient}
         onSave={handleSaveConfiguration}
         onCancel={isConfigured ? () => setShowSettings(false) : undefined}
+        onDemoMode={handleEnterDemoMode}
         isConfigured={isConfigured}
       />
     );
