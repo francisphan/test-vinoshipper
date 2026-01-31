@@ -1,11 +1,15 @@
 {
-  "name": "vinoshipper-inventory-agent",
+  "name": "peyto",
   "version": "1.0.0",
   "type": "module",
+  "description": "AI-powered inventory management for wine producers",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
     "lucide-react": "^0.294.0",
@@ -13,6 +17,9 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@tauri-apps/api": "^2.9.1",
+    "@tauri-apps/cli": "^2.9.6",
+    "@types/node": "^25.1.0",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.2.0",

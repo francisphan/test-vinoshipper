@@ -16,7 +16,7 @@ export const ClientManager: React.FC<ClientManagerProps> = ({
 }) => {
   const [newClientName, setNewClientName] = useState('');
   const [newClientApiKey, setNewClientApiKey] = useState('');
-  const [newClientFulfillment, setNewClientFulfillment] = useState(FULFILLMENT_OPTIONS[0]);
+  const [newClientFulfillment, setNewClientFulfillment] = useState<string>(FULFILLMENT_OPTIONS[0]);
 
   const handleAddClient = () => {
     if (!newClientName.trim() || !newClientApiKey.trim()) {

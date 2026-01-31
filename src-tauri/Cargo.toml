@@ -1,0 +1,25 @@
+[package]
+name = "peyto"
+version = "1.0.0"
+description = "AI-powered inventory management for wine producers"
+authors = ["phancis"]
+license = "MIT"
+repository = "https://github.com/phancis/Peyto"
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "peyto_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.5.3", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.9.5", features = [] }
+tauri-plugin-log = "2"
