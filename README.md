@@ -23,9 +23,13 @@ Vinoshipper Multi-Client Manager is a React application that helps wine sales co
 - **Activity Logging** - Track all sync operations and changes
 - **Demo Mode** - Try the app without API keys using simulated data
 
-## Getting Started
+## Documentation
 
-See [DEV.md](DEV.md) for detailed setup and development instructions.
+- **[Development Guide](docs/DEV.md)** - Setup and development instructions
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - Technical architecture and design
+- **[API Credentials](docs/CREDENTIALS.md)** - How to get Claude and Vinoshipper API keys
+
+## Getting Started
 
 ### Quick Start
 
