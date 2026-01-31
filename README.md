@@ -1,60 +1,87 @@
-# Vinoshipper Inventory Agent
+# Vinoshipper Multi-Client Manager
 
-A TypeScript React component for AI-powered inventory synchronization with Vinoshipper.
+<p align="center">
+  <img src="public/assets/wine-icon.svg" alt="Wine Icon" width="120" height="120">
+</p>
 
-## Setup
+<p align="center">
+  <strong>AI-powered inventory management for wine producers on Vinoshipper</strong>
+</p>
 
-To resolve remaining type errors and use this project:
+---
+
+## Overview
+
+Vinoshipper Multi-Client Manager is a React application that helps wine sales consultants manage inventory across multiple Vinoshipper client accounts. It features an AI assistant (powered by Claude) that can sync inventory from CSV files, switch between clients, and monitor stock levels.
+
+## Features
+
+- **Multi-Client Support** - Manage multiple wine producer accounts from a single interface
+- **AI Assistant** - Natural language interface for inventory operations
+- **CSV Import** - Upload inventory files and sync to Vinoshipper
+- **Real-time Sync** - Update Vinoshipper inventory with CSV as the source of truth
+- **Activity Logging** - Track all sync operations and changes
+- **Demo Mode** - Try the app without API keys using simulated data
+
+## Getting Started
+
+See [DEV.md](DEV.md) for detailed setup and development instructions.
+
+### Quick Start
 
 ```bash
 # Install dependencies
 npm install
 
-# The project includes:
-# - React 18+ with TypeScript support
-# - lucide-react icons
-# - Tailwind CSS utilities (via className)
+# Start development server
+npm run dev
 ```
 
-## Code Quality Improvements Made
+Then open `http://localhost:5173` and either:
+- Enter your Claude API key + Vinoshipper credentials, or
+- Click **"Try Demo Mode"** to explore without API keys
 
-✅ **Added Full TypeScript Type Annotations:**
-- All function parameters properly typed
-- State management with generic types (`useState<T>`)
-- Interface definitions for data structures:
-  - `ConversationMessage`: Chat message format
-  - `SyncLog`: Sync activity log entry
-  - `InventoryItem`: Inventory data structure
+## Tech Stack
 
-✅ **Type-Safe Event Handlers:**
-- `ChangeEvent<HTMLInputElement>` for input handlers
-- `KeyboardEvent<HTMLInputElement>` for keyboard events
-- All callback parameters properly typed
-
-✅ **Project Configuration:**
-- `tsconfig.json`: TypeScript compiler configuration
-- `package.json`: Dependencies and scripts
-- `.prettierrc.json`: Code formatting rules
-- `.gitignore`: Git ignore rules
+- **React 18** + **TypeScript**
+- **Vite** - Build tool
+- **Tailwind CSS** - Styling
+- **Lucide React** - Icons
+- **Claude API** - AI assistant
 
 ## Project Structure
 
 ```
-c:\Users\fspha\test-vinoshipper\
-├── vinoshipper-inventory-agent.tsx  (Main component - fully typed)
-├── tsconfig.json                     (TypeScript configuration)
-├── package.json                      (Dependencies)
-├── .prettierrc.json                  (Code formatting)
-├── .gitignore                        (Git ignore rules)
-└── README.md                         (This file)
+src/
+├── main.tsx                 # App entry point
+├── index.ts                 # Main export
+├── index.css                # Global styles
+├── VinoshipperAgent.tsx     # Main application component
+├── types.ts                 # TypeScript interfaces
+├── constants.ts             # Configuration constants
+├── components/
+│   ├── Header.tsx           # App header with client selector
+│   ├── Settings.tsx         # Configuration UI
+│   ├── ClientManager.tsx    # Client add/remove UI
+│   ├── ChatInterface.tsx    # AI chat interface
+│   └── InventoryPanel.tsx   # Inventory display & logs
+├── hooks/
+│   ├── useClients.ts        # Client state management
+│   ├── useInventory.ts      # Inventory state management
+│   ├── useMessages.ts       # Chat messages state
+│   ├── useSyncLogs.ts       # Sync logs state
+│   └── useConfiguration.ts  # App configuration state
+├── services/
+│   ├── claudeService.ts     # Claude API integration
+│   ├── mockClaudeService.ts # Demo mode responses
+│   ├── agentService.ts      # Agent action handling
+│   └── syncService.ts       # Inventory sync operations
+├── utils/
+│   └── csvParser.ts         # CSV parsing utility
+└── client/
+    └── VinoshipperClient.ts # Vinoshipper API client
 ```
 
-## Features
+## Credits
 
-- **API Connection**: Connect to Vinoshipper with API key
-- **Inventory Status**: Check sync status of all items
-- **AI Agent Chat**: Interact with an AI agent for inventory queries
-- **Inventory Sync**: Synchronize out-of-sync items
-- **Activity Log**: Track all sync operations with timestamps
-
-All error highlighting has been addressed through proper TypeScript typing. Once dependencies are installed, all errors will be resolved.
+Wine icon from [Reshot](https://www.reshot.com/) - Free for commercial use.
