@@ -105,14 +105,6 @@ export const migrateFromLocalStorage = async (): Promise<boolean> => {
 
     let migrationOccurred = false;
 
-    // Migrate Claude API key
-    const claudeKey = localStorage.getItem(STORAGE_KEYS.claudeApiKey);
-    if (claudeKey) {
-      console.log('Migrating Claude API key to keyring...');
-      await saveCredential(KEYRING_KEYS.claudeApiKey, claudeKey);
-      migrationOccurred = true;
-    }
-
     // Migrate clients
     const clients = localStorage.getItem(STORAGE_KEYS.clients);
     if (clients) {
@@ -126,7 +118,6 @@ export const migrateFromLocalStorage = async (): Promise<boolean> => {
 
     // Clear localStorage only after successful migration
     if (migrationOccurred) {
-      localStorage.removeItem(STORAGE_KEYS.claudeApiKey);
       localStorage.removeItem(STORAGE_KEYS.clients);
       console.log('Migration completed successfully');
       return true;
@@ -145,7 +136,6 @@ export const migrateFromLocalStorage = async (): Promise<boolean> => {
  */
 export const clearAllCredentials = async (): Promise<void> => {
   try {
-    await deleteCredential(KEYRING_KEYS.claudeApiKey);
     await deleteCredential(KEYRING_KEYS.clients);
     await deleteCredential(KEYRING_KEYS.migrated);
   } catch (error) {

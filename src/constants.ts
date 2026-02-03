@@ -1,19 +1,10 @@
-export const CLAUDE_API_CONFIG = {
-  endpoint: 'https://api.anthropic.com/v1/messages',
-  model: 'claude-sonnet-4-20250514',
-  version: '2023-06-01',
-  maxTokens: 2000,
-} as const;
-
 export const STORAGE_KEYS = {
   clients: 'clients',
-  claudeApiKey: 'claude_api_key',
 } as const;
 
 export const KEYRING_SERVICE = 'com.peyto.vinoshipper';
 
 export const KEYRING_KEYS = {
-  claudeApiKey: 'claude_api_key',
   clients: 'clients',
   migrated: 'storage_migrated',
 } as const;

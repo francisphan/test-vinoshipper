@@ -4,8 +4,6 @@ import { Client } from '../types';
 import { ClientManager } from './ClientManager';
 
 interface SettingsProps {
-  claudeApiKey: string;
-  onClaudeApiKeyChange: (key: string) => void;
   clients: Client[];
   onAddClient: (name: string, apiKey: string, fulfillment: string) => void;
   onRemoveClient: (clientId: string) => void;
@@ -16,8 +14,6 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({
-  claudeApiKey,
-  onClaudeApiKeyChange,
   clients,
   onAddClient,
   onRemoveClient,
@@ -29,11 +25,6 @@ export const Settings: React.FC<SettingsProps> = ({
   const [showClientManager, setShowClientManager] = useState(false);
 
   const handleSave = () => {
-    if (!claudeApiKey.trim()) {
-      alert('Please enter your Claude API key');
-      return;
-    }
-
     if (clients.length === 0) {
       alert('Please add at least one client account');
       return;
@@ -51,20 +42,6 @@ export const Settings: React.FC<SettingsProps> = ({
         </div>
 
         <div className="space-y-6">
-          {/* Claude API Key */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Claude API Key
-            </label>
-            <input
-              type="password"
-              value={claudeApiKey}
-              onChange={(e) => onClaudeApiKeyChange(e.target.value)}
-              placeholder="Enter your Anthropic API key"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
-            />
-          </div>
-
           {/* Client Accounts */}
           <div>
             <div className="flex items-center justify-between mb-3">

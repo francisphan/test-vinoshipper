@@ -126,23 +126,22 @@ describe('useClients', () => {
 
       const { result } = renderHook(() => useClients());
 
-      let newClient: Client | null = null;
       await act(async () => {
-        newClient = await result.current.addClient(
+        await result.current.addClient(
           'New Winery',
           'new-api-key',
           'Hydra (NY)'
         );
       });
 
-      expect(newClient).toMatchObject({
+      expect(result.current.clients).toHaveLength(1);
+      expect(result.current.clients[0]).toMatchObject({
         name: 'New Winery',
         apiKey: 'new-api-key',
         fulfillment: 'Hydra (NY)',
       });
-      expect(newClient?.id).toBeDefined();
-      expect(result.current.clients).toHaveLength(1);
-      expect(result.current.selectedClient).toEqual(newClient);
+      expect(result.current.clients[0].id).toBeDefined();
+      expect(result.current.selectedClient).toEqual(result.current.clients[0]);
     });
 
     it('should add client to existing list', async () => {
@@ -172,12 +171,11 @@ describe('useClients', () => {
 
       const { result } = renderHook(() => useClients());
 
-      let newClient: Client | null = null;
       await act(async () => {
-        newClient = await result.current.addClient('Test', 'key');
+        await result.current.addClient('Test', 'key');
       });
 
-      expect(newClient?.fulfillment).toBe('Hydra (NY)');
+      expect(result.current.clients[0].fulfillment).toBe('Hydra (NY)');
     });
   });
 

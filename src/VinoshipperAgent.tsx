@@ -4,15 +4,10 @@ import { parseCSV, CSVParseError } from './utils/csvParser';
 import {
   useClients,
   useInventory,
-  useMessages,
   useSyncLogs,
   useConfiguration,
 } from './hooks';
 import {
-  sendMessage,
-  sendDemoMessage,
-  buildSystemPrompt,
-  executeAgentActions,
   performFullSync,
   performPartialSync,
   checkAllClients,
@@ -21,24 +16,19 @@ import { migrateFromLocalStorage } from './services/keyringService';
 import {
   Header,
   Settings,
-  ChatInterface,
+  SimpleActionBar,
   InventoryPanel,
 } from './components';
 
 const VinoshipperAgent: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
-  const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
-    claudeApiKey,
-    setClaudeApiKey,
     isConfigured,
     setIsConfigured,
-    loadConfiguration,
-    saveConfiguration,
   } = useConfiguration();
 
   const {
@@ -63,7 +53,6 @@ const VinoshipperAgent: React.FC = () => {
     clearCsvInventory,
   } = useInventory();
 
-  const { messages, addMessage } = useMessages();
   const { syncLogs, addSyncLog } = useSyncLogs();
 
   // Initialize on mount
@@ -79,16 +68,12 @@ const VinoshipperAgent: React.FC = () => {
         console.error('Migration failed:', error);
       }
 
-      // Load configuration and clients
-      const savedKey = await loadConfiguration();
+      // Load clients
       const savedClients = await loadClients();
 
-      if (savedClients.length > 0 && savedKey) {
+      if (savedClients.length > 0) {
         setIsConfigured(true);
-        addMessage(
-          'system',
-          `Managing ${savedClients.length} client account(s). Currently viewing: ${savedClients[0].name}`
-        );
+        addSyncLog(`Managing ${savedClients.length} client account(s). Active: ${savedClients[0].name}`, 'info');
         loadInventory(savedClients[0].apiKey);
       }
     };
@@ -109,36 +94,20 @@ const VinoshipperAgent: React.FC = () => {
     setIsDemoMode(true);
     setIsConfigured(true);
 
-    addMessage('system', `Welcome to Demo Mode! Managing 2 sample wine producer accounts.
-
-You can try commands like:
-• "Sync all items"
-• "Switch to Sample Vineyards"
-• "Check all clients"
-• "Compare inventory"
-
-Note: This is a demonstration with simulated data.`);
-
-    addSyncLog('Demo mode activated', 'success');
+    addSyncLog('Demo mode activated with 2 sample accounts', 'success');
   };
 
   // Handlers
   const handleSaveConfiguration = async () => {
-    if (!claudeApiKey.trim()) {
-      alert('Please enter your Claude API key');
-      return;
-    }
-
     if (clients.length === 0) {
       alert('Please add at least one client account');
       return;
     }
 
     try {
-      await saveConfiguration(claudeApiKey);
       await saveClients(clients);
       setShowSettings(false);
-      addMessage('system', `Configuration saved! Managing ${clients.length} client(s).`);
+      addSyncLog(`Configuration saved! Managing ${clients.length} client(s)`, 'success');
 
       if (selectedClient) {
         loadInventory(selectedClient.apiKey);
@@ -174,7 +143,6 @@ Note: This is a demonstration with simulated data.`);
 
   const handleSwitchClient = (client: Client) => {
     switchClient(client);
-    addMessage('system', `Switched to: ${client.name}`);
     addSyncLog(`Switched to client: ${client.name}`, 'info');
     loadInventory(client.apiKey);
     clearCsvInventory();
@@ -190,14 +158,9 @@ Note: This is a demonstration with simulated data.`);
     try {
       const parsed = parseCSV(text);
       setCsvInventory(parsed);
-      addMessage(
-        'system',
-        `✓ Uploaded ${file.name} with ${parsed.length} items for ${selectedClient.name}. Ready to sync!`
-      );
       addSyncLog(`CSV uploaded: ${parsed.length} items for ${selectedClient.name}`, 'success');
     } catch (error) {
       const errorMsg = error instanceof CSVParseError ? error.message : String(error);
-      addMessage('system', `Error parsing CSV: ${errorMsg}`);
       addSyncLog(`CSV upload failed: ${errorMsg}`, 'error');
     }
 
@@ -207,70 +170,65 @@ Note: This is a demonstration with simulated data.`);
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isProcessing || !selectedClient) return;
+  const handleSyncAll = async () => {
+    if (!csvInventory || !selectedClient || isProcessing) return;
 
-    const userMsg = inputMessage;
-    setInputMessage('');
-    addMessage('user', userMsg);
     setIsProcessing(true);
+    addSyncLog('Starting full sync...', 'info');
 
     try {
-      let response: string;
-
-      if (isDemoMode) {
-        response = await sendDemoMessage(userMsg);
-      } else {
-        const systemPrompt = buildSystemPrompt(clients, selectedClient, inventory, csvInventory);
-        response = await sendMessage(claudeApiKey, userMsg, systemPrompt);
-      }
-
-      addMessage('assistant', response);
-      await executeAgentActions(response, {
-        onSwitchClient: (clientName) => {
-          const client = clients.find(c =>
-            c.name.toLowerCase().includes(clientName.toLowerCase())
-          );
-          if (client) {
-            handleSwitchClient(client);
-          } else {
-            addMessage(
-              'assistant',
-              `Client "${clientName}" not found. Available clients: ${clients.map(c => c.name).join(', ')}`
-            );
-          }
-        },
-        onCheckAllClients: async () => {
-          await checkAllClients(clients, addSyncLog);
-        },
-        onSyncAll: async () => {
-          if (!csvInventory) {
-            addMessage('assistant', 'No CSV uploaded. Please upload a CSV file first.');
-            return;
-          }
-          if (!selectedClient) return;
-
-          await performFullSync(selectedClient, csvInventory, inventory, {
-            onLog: addSyncLog,
-            onInventoryUpdate: updateInventoryItem,
-          });
-        },
-        onSyncPartial: async (skus) => {
-          if (!csvInventory || !selectedClient) return;
-
-          await performPartialSync(selectedClient, skus, csvInventory, inventory, {
-            onLog: addSyncLog,
-            onInventoryUpdate: updateInventoryItem,
-          });
-        },
-        onError: (message) => {
-          addMessage('assistant', message);
-        },
+      await performFullSync(selectedClient, csvInventory, inventory, {
+        onLog: addSyncLog,
+        onInventoryUpdate: updateInventoryItem,
       });
+      addSyncLog('Full sync completed successfully', 'success');
     } catch (error) {
-      console.error('Error calling Claude API:', error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      addMessage('assistant', `Error: ${errorMsg}. Please check your API key in settings.`);
+      addSyncLog(`Sync failed: ${errorMsg}`, 'error');
+    }
+
+    setIsProcessing(false);
+  };
+
+  const handleCompare = () => {
+    if (!csvInventory || !selectedClient) return;
+
+    addSyncLog('Comparing CSV with Vinoshipper inventory...', 'info');
+
+    const differences = csvInventory.filter(csvItem => {
+      const vItem = inventory.find(i => i.sku === csvItem.sku);
+      return !vItem || vItem.quantity !== csvItem.quantity;
+    });
+
+    if (differences.length === 0) {
+      addSyncLog('✓ Inventories match perfectly!', 'success');
+    } else {
+      addSyncLog(`Found ${differences.length} item(s) with different quantities`, 'info');
+      differences.slice(0, 5).forEach(item => {
+        const vItem = inventory.find(i => i.sku === item.sku);
+        if (vItem) {
+          addSyncLog(`  ${item.sku}: CSV=${item.quantity}, Vinoshipper=${vItem.quantity}`, 'info');
+        } else {
+          addSyncLog(`  ${item.sku}: Not in Vinoshipper`, 'info');
+        }
+      });
+      if (differences.length > 5) {
+        addSyncLog(`  ... and ${differences.length - 5} more`, 'info');
+      }
+    }
+  };
+
+  const handleCheckAllClients = async () => {
+    if (isProcessing) return;
+
+    setIsProcessing(true);
+    addSyncLog('Checking inventory for all clients...', 'info');
+
+    try {
+      await checkAllClients(clients, addSyncLog);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      addSyncLog(`Check failed: ${errorMsg}`, 'error');
     }
 
     setIsProcessing(false);
@@ -280,8 +238,6 @@ Note: This is a demonstration with simulated data.`);
   if (showSettings || !isConfigured) {
     return (
       <Settings
-        claudeApiKey={claudeApiKey}
-        onClaudeApiKeyChange={setClaudeApiKey}
         clients={clients}
         onAddClient={handleAddClient}
         onRemoveClient={handleRemoveClient}
@@ -308,7 +264,7 @@ Note: This is a demonstration with simulated data.`);
             csvItemCount={csvInventory?.length || 0}
             onClearCsv={() => {
               clearCsvInventory();
-              addMessage('system', 'CSV cleared. Upload a new file to sync inventory.');
+              addSyncLog('CSV cleared', 'info');
             }}
             fileInputRef={fileInputRef}
           />
@@ -322,21 +278,26 @@ Note: This is a demonstration with simulated data.`);
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 p-4">
-            <ChatInterface
-              messages={messages}
-              inputMessage={inputMessage}
-              onInputChange={setInputMessage}
-              onSendMessage={handleSendMessage}
-              isProcessing={isProcessing}
+            <SimpleActionBar
               selectedClient={selectedClient}
+              csvFileName={csvFileName}
+              hasCsvData={!!csvInventory && csvInventory.length > 0}
+              onFileUpload={handleFileUpload}
+              onSyncAll={handleSyncAll}
+              onCompare={handleCompare}
+              onCheckAllClients={handleCheckAllClients}
+              isProcessing={isProcessing}
+              fileInputRef={fileInputRef}
             />
 
-            <InventoryPanel
-              selectedClient={selectedClient}
-              inventory={inventory}
-              csvInventory={csvInventory}
-              syncLogs={syncLogs}
-            />
+            <div className="lg:col-span-2">
+              <InventoryPanel
+                selectedClient={selectedClient}
+                inventory={inventory}
+                csvInventory={csvInventory}
+                syncLogs={syncLogs}
+              />
+            </div>
           </div>
         </div>
       </div>
