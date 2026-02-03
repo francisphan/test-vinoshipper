@@ -10,6 +10,14 @@ export const STORAGE_KEYS = {
   claudeApiKey: 'claude_api_key',
 } as const;
 
+export const KEYRING_SERVICE = 'com.peyto.vinoshipper';
+
+export const KEYRING_KEYS = {
+  claudeApiKey: 'claude_api_key',
+  clients: 'clients',
+  migrated: 'storage_migrated',
+} as const;
+
 export const FULFILLMENT_OPTIONS = [
   'Hydra (NY)',
   'ShipEz (CA)',
