@@ -17,6 +17,7 @@ import {
   performPartialSync,
   checkAllClients,
 } from './services';
+import { migrateFromLocalStorage } from './services/keyringService';
 import {
   Header,
   Settings,
@@ -67,28 +68,43 @@ const VinoshipperAgent: React.FC = () => {
 
   // Initialize on mount
   useEffect(() => {
-    const savedKey = loadConfiguration();
-    const savedClients = loadClients();
+    const initialize = async () => {
+      // Attempt to migrate from localStorage to keyring
+      try {
+        const migrated = await migrateFromLocalStorage();
+        if (migrated) {
+          console.log('Successfully migrated credentials to secure storage');
+        }
+      } catch (error) {
+        console.error('Migration failed:', error);
+      }
 
-    if (savedClients.length > 0 && savedKey) {
-      setIsConfigured(true);
-      addMessage(
-        'system',
-        `Managing ${savedClients.length} client account(s). Currently viewing: ${savedClients[0].name}`
-      );
-      loadInventory(savedClients[0].apiKey);
-    }
+      // Load configuration and clients
+      const savedKey = await loadConfiguration();
+      const savedClients = await loadClients();
+
+      if (savedClients.length > 0 && savedKey) {
+        setIsConfigured(true);
+        addMessage(
+          'system',
+          `Managing ${savedClients.length} client account(s). Currently viewing: ${savedClients[0].name}`
+        );
+        loadInventory(savedClients[0].apiKey);
+      }
+    };
+
+    initialize();
   }, []);
 
   // Demo mode handler
-  const handleEnterDemoMode = () => {
+  const handleEnterDemoMode = async () => {
     // Set up demo clients
     const demoClients: Client[] = [
       { id: 'demo-1', name: 'Demo Winery', apiKey: 'demo-key', fulfillment: 'Hydra (NY)' },
       { id: 'demo-2', name: 'Sample Vineyards', apiKey: 'demo-key-2', fulfillment: 'ShipEz (CA)' },
     ];
 
-    saveClients(demoClients);
+    await saveClients(demoClients);
     setSelectedClient(demoClients[0]);
     setIsDemoMode(true);
     setIsConfigured(true);
@@ -107,7 +123,7 @@ Note: This is a demonstration with simulated data.`);
   };
 
   // Handlers
-  const handleSaveConfiguration = () => {
+  const handleSaveConfiguration = async () => {
     if (!claudeApiKey.trim()) {
       alert('Please enter your Claude API key');
       return;
@@ -118,26 +134,41 @@ Note: This is a demonstration with simulated data.`);
       return;
     }
 
-    saveConfiguration(claudeApiKey);
-    saveClients(clients);
-    setShowSettings(false);
-    addMessage('system', `Configuration saved! Managing ${clients.length} client(s).`);
+    try {
+      await saveConfiguration(claudeApiKey);
+      await saveClients(clients);
+      setShowSettings(false);
+      addMessage('system', `Configuration saved! Managing ${clients.length} client(s).`);
 
-    if (selectedClient) {
-      loadInventory(selectedClient.apiKey);
+      if (selectedClient) {
+        loadInventory(selectedClient.apiKey);
+      }
+    } catch (error) {
+      console.error('Failed to save configuration:', error);
+      alert('Failed to save configuration. Please try again.');
     }
   };
 
-  const handleAddClient = (name: string, apiKey: string, fulfillment: string) => {
-    const newClient = addClient(name, apiKey, fulfillment);
-    addSyncLog(`Added client: ${newClient.name}`, 'success');
+  const handleAddClient = async (name: string, apiKey: string, fulfillment: string) => {
+    try {
+      const newClient = await addClient(name, apiKey, fulfillment);
+      addSyncLog(`Added client: ${newClient.name}`, 'success');
+    } catch (error) {
+      console.error('Failed to add client:', error);
+      alert('Failed to add client. Please try again.');
+    }
   };
 
-  const handleRemoveClient = (clientId: string) => {
-    const updatedClients = removeClient(clientId);
+  const handleRemoveClient = async (clientId: string) => {
+    try {
+      const updatedClients = await removeClient(clientId);
 
-    if (selectedClient?.id === clientId && updatedClients.length > 0) {
-      loadInventory(updatedClients[0].apiKey);
+      if (selectedClient?.id === clientId && updatedClients.length > 0) {
+        loadInventory(updatedClients[0].apiKey);
+      }
+    } catch (error) {
+      console.error('Failed to remove client:', error);
+      alert('Failed to remove client. Please try again.');
     }
   };
 
