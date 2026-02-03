@@ -1,30 +1,41 @@
 import { useState, useCallback } from 'react';
 import { Client } from '../types';
-import { STORAGE_KEYS, FULFILLMENT_OPTIONS } from '../constants';
+import { KEYRING_KEYS, FULFILLMENT_OPTIONS } from '../constants';
+import { getCredential, saveCredential } from '../services/keyringService';
 
 export const useClients = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
-  const loadClients = useCallback(() => {
-    const savedClients = localStorage.getItem(STORAGE_KEYS.clients);
-    if (savedClients) {
-      const parsedClients = JSON.parse(savedClients);
-      setClients(parsedClients);
-      if (parsedClients.length > 0) {
-        setSelectedClient(parsedClients[0]);
+  const loadClients = useCallback(async () => {
+    try {
+      const savedClients = await getCredential(KEYRING_KEYS.clients);
+      if (savedClients) {
+        const parsedClients = JSON.parse(savedClients);
+        setClients(parsedClients);
+        if (parsedClients.length > 0) {
+          setSelectedClient(parsedClients[0]);
+        }
+        return parsedClients;
       }
-      return parsedClients;
+      return [];
+    } catch (error) {
+      console.error('Failed to load clients:', error);
+      return [];
     }
-    return [];
   }, []);
 
-  const saveClients = useCallback((clientsToSave: Client[]) => {
-    localStorage.setItem(STORAGE_KEYS.clients, JSON.stringify(clientsToSave));
-    setClients(clientsToSave);
+  const saveClients = useCallback(async (clientsToSave: Client[]) => {
+    try {
+      await saveCredential(KEYRING_KEYS.clients, JSON.stringify(clientsToSave));
+      setClients(clientsToSave);
+    } catch (error) {
+      console.error('Failed to save clients:', error);
+      throw error;
+    }
   }, []);
 
-  const addClient = useCallback((name: string, apiKey: string, fulfillment: string = FULFILLMENT_OPTIONS[0]) => {
+  const addClient = useCallback(async (name: string, apiKey: string, fulfillment: string = FULFILLMENT_OPTIONS[0]) => {
     const newClient: Client = {
       id: Date.now().toString(),
       name,
@@ -33,7 +44,7 @@ export const useClients = () => {
     };
 
     const updatedClients = [...clients, newClient];
-    saveClients(updatedClients);
+    await saveClients(updatedClients);
 
     if (!selectedClient) {
       setSelectedClient(newClient);
@@ -42,9 +53,9 @@ export const useClients = () => {
     return newClient;
   }, [clients, selectedClient, saveClients]);
 
-  const removeClient = useCallback((clientId: string) => {
+  const removeClient = useCallback(async (clientId: string) => {
     const updatedClients = clients.filter(c => c.id !== clientId);
-    saveClients(updatedClients);
+    await saveClients(updatedClients);
 
     if (selectedClient?.id === clientId) {
       setSelectedClient(updatedClients[0] || null);
