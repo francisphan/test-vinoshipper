@@ -6,6 +6,9 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "keyring:allow-get-secret",
+    "keyring:allow-set-secret",
+    "keyring:allow-delete-secret"
   ]
 }
