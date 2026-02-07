@@ -51,6 +51,6 @@ chmod +x peyto_<version>_amd64.AppImage
 
 ## Getting Started
 
-After installation, launch Peyto and configure your Vinoshipper credentials to start managing your wine inventory with AI-powered natural language commands.
+After installation, launch Peyto and configure your Vinoshipper credentials to start managing your wine inventory.
 
 For support or issues, please visit our [GitHub Issues](https://github.com/francisphan/Peyto/issues) page.

@@ -1,6 +1,6 @@
 # Peyto - Architecture Overview
 
-A cross-platform desktop application for managing wine inventory across multiple Vinoshipper producer accounts using natural language AI commands.
+A cross-platform desktop application for managing wine inventory across multiple Vinoshipper producer accounts via direct CSV-based sync.
 
 ## Architecture Overview
 
@@ -10,8 +10,8 @@ A cross-platform desktop application for managing wine inventory across multiple
 │                                                     │
 │  ┌───────────────────────────────────────────────┐ │
 │  │  Frontend (React + TypeScript + Vite)        │ │
-│  │  - Chat Interface                             │ │
-│  │  - Inventory Management UI                    │ │
+│  │  - Inventory Table                            │ │
+│  │  - CSV Upload & Sync Actions                  │ │
 │  │  - Client Switcher                            │ │
 │  │  - Settings & Configuration                   │ │
 │  └───────────────────────────────────────────────┘ │
@@ -20,15 +20,15 @@ A cross-platform desktop application for managing wine inventory across multiple
 │  │  Backend (Rust)                               │ │
 │  │  - Tauri Core                                 │ │
 │  │  - IPC Bridge                                 │ │
-│  │  - System Integration                         │ │
+│  │  - OS Keyring (Credential Storage)            │ │
 │  └───────────────────────────────────────────────┘ │
 │                                                     │
 └─────────────────────────────────────────────────────┘
-           ↓                            ↓
-    ┌──────────────┐           ┌───────────────┐
-    │  Claude API  │           │  Vinoshipper  │
-    │  (Anthropic) │           │      API      │
-    └──────────────┘           └───────────────┘
+                         ↓
+                ┌───────────────┐
+                │  Vinoshipper  │
+                │      API      │
+                └───────────────┘
 ```
 
 ## Why Tauri?
@@ -56,7 +56,6 @@ A cross-platform desktop application for managing wine inventory across multiple
 - **Cargo** - Rust package manager
 
 ### External APIs
-- **Claude API** (Anthropic) - AI assistant for natural language processing
 - **Vinoshipper API** - Wine inventory management platform
 
 ## Project Structure
@@ -67,6 +66,7 @@ peyto/
 ├── vite.config.ts              # Vite configuration
 ├── tailwind.config.js          # Tailwind CSS config
 ├── tsconfig.json               # TypeScript configuration
+├── vitest.config.ts            # Vitest test configuration
 ├── src/                        # Frontend source
 │   ├── main.tsx                # App entry point
 │   ├── index.css               # Global styles
@@ -77,19 +77,17 @@ peyto/
 │   │   ├── Header.tsx          # App header with client selector
 │   │   ├── Settings.tsx        # Configuration UI
 │   │   ├── ClientManager.tsx   # Client management
-│   │   ├── ChatInterface.tsx   # AI chat interface
-│   │   └── InventoryPanel.tsx  # Inventory display & logs
+│   │   ├── SimpleActionBar.tsx # Direct action buttons
+│   │   └── InventoryPanel.tsx  # Inventory table & activity logs
 │   ├── hooks/                  # Custom React hooks
 │   │   ├── useClients.ts       # Client state management
-│   │   ├── useInventory.ts     # Inventory state
-│   │   ├── useMessages.ts      # Chat messages
+│   │   ├── useInventory.ts     # Inventory state & caching
 │   │   ├── useSyncLogs.ts      # Sync activity logs
 │   │   └── useConfiguration.ts # App configuration
 │   ├── services/               # Business logic
-│   │   ├── claudeService.ts    # Claude API integration
-│   │   ├── mockClaudeService.ts # Demo mode simulation
-│   │   ├── agentService.ts     # Agent action handling
-│   │   └── syncService.ts      # Inventory sync operations
+│   │   ├── keyringService.ts   # OS credential storage (Tauri bridge)
+│   │   ├── syncService.ts      # Inventory sync operations
+│   │   └── inventoryCache.ts   # localStorage inventory cache
 │   ├── utils/                  # Utility functions
 │   │   └── csvParser.ts        # CSV parsing
 │   └── client/                 # API clients
@@ -98,62 +96,58 @@ peyto/
 │   ├── Cargo.toml              # Rust dependencies
 │   ├── tauri.conf.json         # Tauri configuration
 │   ├── build.rs                # Build script
-│   ├── src/
-│   │   ├── main.rs             # Rust entry point
-│   │   └── lib.rs              # Tauri app initialization
-│   └── icons/                  # App icons (various sizes)
+│   └── src/
+│       ├── main.rs             # Rust entry point
+│       └── lib.rs              # Tauri commands (keyring)
 ├── public/                     # Static assets
 │   └── assets/
 │       └── wine-icon.svg       # App logo
 └── docs/                       # Documentation
     ├── ARCHITECTURE.md         # This file
     ├── DEV.md                  # Development guide
-    └── CREDENTIALS.md          # API credentials guide
+    ├── CREDENTIALS.md          # API credentials guide
+    ├── TESTING.md              # Testing documentation
+    └── INSTALLATION.md         # Installation guide
 ```
 
 ## Data Flow
 
-### 1. User Input Flow
-```
-User types message
-    ↓
-ChatInterface component captures input
-    ↓
-claudeService.sendMessage()
-    ↓
-Claude API (streaming response)
-    ↓
-agentService.processAction() (if action detected)
-    ↓
-syncService / VinoshipperClient
-    ↓
-Vinoshipper API
-    ↓
-Update local state & UI
-```
-
-### 2. CSV Import Flow
+### 1. CSV Import & Sync Flow
 ```
 User uploads CSV
     ↓
-csvParser.parseInventoryCsv()
+csvParser.parseCSV()
     ↓
-User confirms via AI chat
+User clicks "Compare" or "Sync All"
     ↓
-syncService.syncInventory()
+syncService.performFullSync()
     ↓
-VinoshipperClient.batchUpdateInventory()
+VinoshipperClient (create/update per SKU)
     ↓
-API calls to Vinoshipper (with retry logic)
+Vinoshipper API (with retry logic)
     ↓
-Log results in activity panel
+Update local state & activity log
+```
+
+### 2. Inventory Fetch & Cache Flow
+```
+User selects client / app initializes
+    ↓
+useInventory.loadInventory(clientId, apiKey)
+    ↓
+VinoshipperClient.getInventory()
+    ↓
+On success → cache to localStorage, display in table
+On failure → serve from cache (if available)
+    ↓
+InventoryPanel renders table with "Last updated" timestamp
 ```
 
 ### 3. Multi-Client Management
 ```
 User adds client in Settings
     ↓
-Stored in localStorage
+Stored in OS keyring (via Tauri IPC)
     ↓
 Client selector in Header
     ↓
@@ -173,16 +167,18 @@ Main application component that orchestrates:
 - Client selection
 - Integration of all child components
 
-#### ChatInterface.tsx
-- Message input and display
-- Streaming Claude API responses
-- File upload for CSV imports
-- Message history
-
 #### InventoryPanel.tsx
-- Current inventory display
-- Sync activity logs
-- Real-time updates
+- Tabular inventory display with columns: SKU, Name, Category, Vintage, Size, Price, Qty, Status
+- Color-coded quantity indicators (red/orange/green)
+- CSV mismatch alerts
+- "Last updated" relative timestamp
+- Sync activity log
+
+#### SimpleActionBar.tsx
+- Upload CSV button
+- Sync All to Vinoshipper
+- Compare Inventory
+- Check All Clients
 
 #### ClientManager.tsx
 - Add/remove Vinoshipper accounts
@@ -191,17 +187,12 @@ Main application component that orchestrates:
 
 ### Services
 
-#### claudeService.ts
-- Integrates with Anthropic Claude API
-- Handles streaming responses
-- Builds context-aware prompts with inventory data
-- Parses agent actions from responses
-
 #### VinoshipperClient.ts
 - HTTP client for Vinoshipper API
 - Basic authentication (key:secret)
 - Retry logic with exponential backoff
 - Error handling and normalization
+- Normalizes product fields: price, category, vintage, bottleSize, status
 - Methods: getInventory, updateInventory, createProduct, batchUpdateInventory
 
 #### syncService.ts
@@ -210,41 +201,39 @@ Main application component that orchestrates:
 - Determines create vs update operations
 - Batch processing with progress tracking
 
-#### agentService.ts
-- Parses Claude responses for action indicators
-- Executes inventory sync operations
-- Handles client switching
-- Coordinates between AI and Vinoshipper API
+#### inventoryCache.ts
+- localStorage-based cache keyed by client ID
+- Stores inventory items with a `fetchedAt` timestamp
+- Serves cached data when the API is unreachable
+- Functions: getInventoryCache, setInventoryCache, clearInventoryCache
+
+#### keyringService.ts
+- Bridges frontend to Tauri's OS keyring plugin
+- Falls back to localStorage in browser dev mode
+- One-time migration from localStorage to secure keyring
 
 ### Data Storage
 
-**Browser localStorage:**
-- `claude_api_key` - Anthropic API key
-- `clients` - Array of Vinoshipper client configurations
-  ```json
-  [
-    {
-      "id": "uuid",
-      "name": "Client Name",
-      "apiKey": "key:secret",
-      "fulfillment": "Fulfillment Center"
-    }
-  ]
-  ```
+**OS Keyring (Desktop):**
+- `clients` - JSON array of Vinoshipper client configurations
+- `storage_migrated` - Migration flag
+
+**localStorage (Browser fallback & cache):**
+- `inventory_cache_{clientId}` - Cached inventory per client with timestamp
 
 **No persistent backend database** - all data stored client-side or fetched from APIs on demand.
 
 ## Security Considerations
 
 ### Credential Storage
-- API keys stored in browser localStorage (encrypted by browser)
-- Never transmitted except to authorized APIs
-- Keys can be cleared by user
+- **Desktop (Tauri)**: OS-native keyring (Keychain / Credential Manager / Secret Service)
+- **Browser/Dev fallback**: localStorage
+- API keys never transmitted except to Vinoshipper
+- Keys can be cleared by removing clients in Settings
 
 ### API Communication
 - All API calls over HTTPS
 - Vinoshipper: Basic auth with key:secret
-- Claude: Bearer token authentication
 
 ### Tauri Security
 - Content Security Policy configured
@@ -281,22 +270,20 @@ Generated in `src-tauri/target/release/bundle/`:
 
 ### Demo Mode
 - No API keys required
-- Mock data and simulated responses
+- Sample client accounts created
+- API calls fail gracefully (empty inventory or cache)
 - Full UI exploration
-- Testing without costs
 
 ### Production Mode
-- Requires Claude API key (Anthropic)
 - Requires Vinoshipper API credentials per client
-- Real AI processing
-- Actual inventory management
+- Real inventory management
+- Cached data available when offline
 
 ## Future Enhancements
 
 Potential improvements:
 - **Auto-updates** - Tauri updater for seamless releases
-- **Local database** - SQLite for offline inventory cache
+- **Local database** - SQLite for richer offline support
 - **Multi-user support** - Team collaboration features
 - **Advanced analytics** - Inventory reports and insights
 - **Webhook integration** - Real-time Vinoshipper updates
-- **Mobile companion** - React Native app with shared backend

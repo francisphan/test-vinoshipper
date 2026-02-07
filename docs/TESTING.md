@@ -2,15 +2,13 @@
 
 ## Overview
 
-Comprehensive test coverage for the keyring integration, including both frontend (TypeScript/React) and backend (Rust) tests.
+Test coverage for the Peyto application, including frontend (TypeScript/React) and backend (Rust) tests.
 
 ## Test Statistics
 
 ### Frontend Tests (Vitest)
-- **41 tests** across 3 test suites
-- **99.22% statement coverage**
-- **93.1% branch coverage**
-- **100% function coverage**
+- **14 tests** in 1 test suite
+- Test file: `src/hooks/useClients.test.ts`
 
 ### Backend Tests (Rust)
 - **5 tests** for credential handling
@@ -51,57 +49,6 @@ cargo test test_credential_lifecycle
 ## Test Structure
 
 ### Frontend Tests
-
-#### `src/services/keyringService.test.ts` (20 tests)
-Tests for the keyring service layer:
-
-- **isTauriApp (2 tests)**
-  - Detects Tauri environment correctly
-  - Returns false when not in Tauri
-
-- **saveCredential (3 tests)**
-  - Calls Tauri invoke with correct parameters
-  - Falls back to localStorage on error
-  - Uses localStorage when not in Tauri app
-
-- **getCredential (4 tests)**
-  - Retrieves credentials from keyring
-  - Returns null for missing credentials
-  - Falls back to localStorage on error
-  - Uses localStorage in browser
-
-- **deleteCredential (3 tests)**
-  - Deletes credentials from keyring
-  - Falls back to localStorage on error
-  - Uses localStorage in browser
-
-- **migrateFromLocalStorage (6 tests)**
-  - Returns false when not in Tauri
-  - Skips if already migrated
-  - Migrates Claude API key
-  - Migrates client list
-  - Handles migration errors gracefully
-  - Returns false when no data to migrate
-
-- **clearAllCredentials (2 tests)**
-  - Deletes all credentials
-  - Handles errors gracefully
-
-#### `src/hooks/useConfiguration.test.ts` (7 tests)
-Tests for the configuration hook:
-
-- **loadConfiguration (3 tests)**
-  - Loads API key from keyring
-  - Returns null when not saved
-  - Handles errors gracefully
-
-- **saveConfiguration (2 tests)**
-  - Saves API key to keyring
-  - Throws error if save fails
-
-- **State Management (2 tests)**
-  - Initializes with empty state
-  - Allows manual state updates
 
 #### `src/hooks/useClients.test.ts` (14 tests)
 Tests for the clients hook:
@@ -160,39 +107,30 @@ Tests for the clients hook:
 
 ### Covered Functionality
 
-#### Keyring Service
-- ✅ Save credentials to OS keyring
-- ✅ Get credentials from OS keyring
-- ✅ Delete credentials from OS keyring
-- ✅ Migration from localStorage
-- ✅ Fallback to localStorage
-- ✅ Tauri environment detection
-- ✅ Error handling
-
-#### Configuration Hook
-- ✅ Load configuration
-- ✅ Save configuration
-- ✅ State management
-- ✅ Error handling
-
 #### Clients Hook
-- ✅ Load clients
-- ✅ Save clients
-- ✅ Add client
-- ✅ Remove client
-- ✅ Switch client
-- ✅ State management
-- ✅ Error handling
+- Load clients from keyring
+- Save clients to keyring
+- Add client
+- Remove client
+- Switch client
+- State management
+- Error handling
 
 #### Backend Commands
-- ✅ UTF-8 encoding/decoding
-- ✅ JSON serialization
-- ✅ Error message formatting
-- ✅ Service/key formatting
+- UTF-8 encoding/decoding
+- JSON serialization
+- Error message formatting
+- Service/key formatting
 
-### Uncovered Lines
+### Areas Without Tests
 
-Only 1 line uncovered in keyringService.ts (line 152 - a non-critical console.log).
+The following modules currently lack dedicated test files:
+- `useInventory` hook (inventory loading, caching fallback)
+- `inventoryCache` service (localStorage cache read/write)
+- `keyringService` (OS keyring bridge, migration)
+- `syncService` (full sync, partial sync)
+- `VinoshipperClient` (API calls, retry logic, normalization)
+- `csvParser` (CSV parsing, header detection)
 
 ## Mocking Strategy
 

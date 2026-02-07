@@ -23,6 +23,12 @@ npm run dev
 
 The server will start at `http://localhost:5173` (or the next available port).
 
+For the full desktop app with Tauri:
+
+```bash
+npm run tauri:dev
+```
+
 ---
 
 ## Running Modes
@@ -33,18 +39,17 @@ To explore the application without any API keys:
 
 1. Start the dev server: `npm run dev`
 2. Open `http://localhost:5173` in your browser
-3. On the Settings screen, click **"Try Demo Mode (No API Keys Required)"**
-4. The app will load with sample wine producer accounts and simulated AI responses
+3. On the Settings screen, click **"Try Demo Mode"**
+4. The app will load with sample wine producer accounts
 
 Demo mode is great for:
 - Exploring the UI and features
 - Testing the application flow
-- Development and debugging without API costs
+- Development and debugging
 
 **Limitations in Demo Mode:**
-- AI responses are simulated (not real Claude API calls)
-- Inventory data is mock data
-- Sync operations are simulated
+- API calls fail gracefully (inventory will be empty or served from cache)
+- Sync operations will not reach Vinoshipper
 
 ### Production Mode (Real API Keys)
 
@@ -52,17 +57,15 @@ To use the full application with real functionality:
 
 1. Start the dev server: `npm run dev`
 2. Open `http://localhost:5173` in your browser
-3. On the Settings screen, enter your **Claude API Key** (from [Anthropic Console](https://console.anthropic.com/))
-4. Click **"Manage Clients"** and add your Vinoshipper client accounts:
+3. On the Settings screen, click **"Manage Clients"** and add your Vinoshipper client accounts:
    - Client Name (e.g., "My Winery")
    - Vinoshipper API Key:Secret
    - Select fulfillment center
-5. Click **"Save & Connect"**
+4. Click **"Save & Connect"**
 
 **Required API Keys:**
 | Key | Source | Purpose |
 |-----|--------|---------|
-| Claude API Key | [console.anthropic.com](https://console.anthropic.com/) | AI assistant functionality |
 | Vinoshipper API Key:Secret | Vinoshipper account | Inventory management |
 
 ---
@@ -72,8 +75,13 @@ To use the full application with real functionality:
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start development server with hot reload |
-| `npm run build` | Build for production (runs TypeScript compiler + Vite build) |
+| `npm run build` | Build for production (TypeScript compiler + Vite build) |
 | `npm run preview` | Preview production build locally |
+| `npm run test` | Run tests with Vitest |
+| `npm run test:ui` | Run tests with Vitest UI |
+| `npm run test:coverage` | Run tests with coverage report |
+| `npm run tauri:dev` | Start desktop app with hot reload |
+| `npm run tauri:build` | Build desktop app installers |
 
 ## Project Structure
 
@@ -87,19 +95,17 @@ src/
 │   ├── Header.tsx
 │   ├── Settings.tsx
 │   ├── ClientManager.tsx
-│   ├── ChatInterface.tsx
+│   ├── SimpleActionBar.tsx
 │   └── InventoryPanel.tsx
 ├── hooks/                  # Custom React hooks
 │   ├── useClients.ts
 │   ├── useInventory.ts
-│   ├── useMessages.ts
 │   ├── useSyncLogs.ts
 │   └── useConfiguration.ts
 ├── services/               # Business logic services
-│   ├── claudeService.ts    # Real Claude API integration
-│   ├── mockClaudeService.ts # Demo mode simulated responses
-│   ├── agentService.ts
-│   └── syncService.ts
+│   ├── keyringService.ts   # OS-native credential storage
+│   ├── syncService.ts      # Inventory sync operations
+│   └── inventoryCache.ts   # localStorage inventory cache
 ├── utils/                  # Utility functions
 │   └── csvParser.ts
 └── client/                 # API client
@@ -108,8 +114,12 @@ src/
 
 ## Configuration Storage
 
-Configuration is stored in browser localStorage:
-- `claude_api_key` - Your Anthropic API key
-- `clients` - Array of Vinoshipper client configurations
+**Desktop (Tauri):** Credentials are stored in the OS-native keyring (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux).
 
-To reset all configuration, clear your browser's localStorage for the development URL.
+**Browser dev mode:** Falls back to localStorage.
+
+**Inventory cache:** Stored in localStorage keyed by client ID (`inventory_cache_{clientId}`), with a `fetchedAt` timestamp. Served when the Vinoshipper API is unreachable.
+
+To reset all configuration:
+- Remove clients in the Settings UI, or
+- Clear your browser's localStorage for the development URL

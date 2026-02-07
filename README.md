@@ -19,6 +19,8 @@ Vinoshipper Multi-Client Manager is a lightweight desktop app that helps wine sa
 - **Multi-Client Support** - Manage multiple wine producer accounts from a single interface
 - **CSV Import** - Upload inventory files and sync to Vinoshipper with one click
 - **Direct Actions** - Clear buttons for sync, compare, and checking all clients
+- **Detailed Inventory Table** - View SKU, name, category, vintage, bottle size, price, quantity, and status
+- **Inventory Caching** - Cached per-client inventory with "Last updated" timestamp; serves offline when the API is unreachable
 - **Real-time Sync** - Update Vinoshipper inventory with CSV as the source of truth
 - **Activity Logging** - Track all sync operations and changes
 - **Secure Storage** - OS-native credential storage (Keychain/Credential Manager)
@@ -87,7 +89,7 @@ src/
 ├── services/
 │   ├── keyringService.ts    # Secure credential storage
 │   ├── syncService.ts       # Inventory sync operations
-│   └── ...
+│   └── inventoryCache.ts    # Per-client inventory cache
 ├── utils/
 │   └── csvParser.ts         # CSV parsing utility
 └── client/
