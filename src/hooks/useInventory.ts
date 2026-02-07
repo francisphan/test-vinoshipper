@@ -1,18 +1,21 @@
 import { useState, useCallback } from 'react';
 import { InventoryItem, CSVItem } from '../types';
 import { VinoshipperClient, VinoshipperApiError } from '../client/VinoshipperClient';
-import { MOCK_INVENTORY } from '../constants';
+import { getInventoryCache, setInventoryCache } from '../services/inventoryCache';
 
 export const useInventory = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [csvInventory, setCsvInventory] = useState<CSVItem[] | null>(null);
   const [csvFileName, setCsvFileName] = useState('');
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
 
-  const loadInventory = useCallback(async (apiKey: string): Promise<{ success: boolean; count: number; error?: string }> => {
+  const loadInventory = useCallback(async (clientId: string, apiKey: string): Promise<{ success: boolean; count: number; fromCache?: boolean; error?: string }> => {
     try {
       const client = new VinoshipperClient(apiKey);
       const data = await client.getInventory();
       setInventory(data);
+      setLastFetched(new Date());
+      setInventoryCache(clientId, data);
       return { success: true, count: data.length };
     } catch (error) {
       console.error('Failed to load inventory:', error);
@@ -22,9 +25,18 @@ export const useInventory = () => {
         errorMessage = error.message;
       }
 
-      // Fallback to mock data
-      setInventory(MOCK_INVENTORY);
-      return { success: false, count: MOCK_INVENTORY.length, error: errorMessage };
+      // Try to load from cache
+      const cached = getInventoryCache(clientId);
+      if (cached) {
+        setInventory(cached.items);
+        setLastFetched(cached.fetchedAt);
+        return { success: false, count: cached.items.length, fromCache: true, error: errorMessage };
+      }
+
+      // No cache available
+      setInventory([]);
+      setLastFetched(null);
+      return { success: false, count: 0, error: errorMessage };
     }
   }, []);
 
@@ -56,6 +68,7 @@ export const useInventory = () => {
     setCsvInventory,
     csvFileName,
     setCsvFileName,
+    lastFetched,
     loadInventory,
     updateInventoryItem,
     clearCsvInventory,

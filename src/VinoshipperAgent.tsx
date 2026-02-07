@@ -48,6 +48,7 @@ const VinoshipperAgent: React.FC = () => {
     setCsvInventory,
     csvFileName,
     setCsvFileName,
+    lastFetched,
     loadInventory,
     updateInventoryItem,
     clearCsvInventory,
@@ -74,7 +75,7 @@ const VinoshipperAgent: React.FC = () => {
       if (savedClients.length > 0) {
         setIsConfigured(true);
         addSyncLog(`Managing ${savedClients.length} client account(s). Active: ${savedClients[0].name}`, 'info');
-        loadInventory(savedClients[0].apiKey);
+        loadInventory(savedClients[0].id, savedClients[0].apiKey);
       }
     };
 
@@ -110,7 +111,7 @@ const VinoshipperAgent: React.FC = () => {
       addSyncLog(`Configuration saved! Managing ${clients.length} client(s)`, 'success');
 
       if (selectedClient) {
-        loadInventory(selectedClient.apiKey);
+        loadInventory(selectedClient.id, selectedClient.apiKey);
       }
     } catch (error) {
       console.error('Failed to save configuration:', error);
@@ -133,7 +134,7 @@ const VinoshipperAgent: React.FC = () => {
       const updatedClients = await removeClient(clientId);
 
       if (selectedClient?.id === clientId && updatedClients.length > 0) {
-        loadInventory(updatedClients[0].apiKey);
+        loadInventory(updatedClients[0].id, updatedClients[0].apiKey);
       }
     } catch (error) {
       console.error('Failed to remove client:', error);
@@ -144,7 +145,7 @@ const VinoshipperAgent: React.FC = () => {
   const handleSwitchClient = (client: Client) => {
     switchClient(client);
     addSyncLog(`Switched to client: ${client.name}`, 'info');
-    loadInventory(client.apiKey);
+    loadInventory(client.id, client.apiKey);
     clearCsvInventory();
   };
 
@@ -296,6 +297,7 @@ const VinoshipperAgent: React.FC = () => {
                 inventory={inventory}
                 csvInventory={csvInventory}
                 syncLogs={syncLogs}
+                lastFetched={lastFetched}
               />
             </div>
           </div>
