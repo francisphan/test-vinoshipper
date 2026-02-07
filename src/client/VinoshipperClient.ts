@@ -9,6 +9,11 @@ export interface VinoshipperProduct {
   sku: string;
   name: string;
   quantity: number;
+  price?: number;
+  category?: string;
+  vintage?: string;
+  bottleSize?: string;
+  status?: 'active' | 'inactive' | 'sold_out';
   lastSync?: Date;
 }
 
@@ -22,6 +27,16 @@ export interface VinoshipperApiProduct {
   quantity?: number;
   stock?: number;
   inventory_count?: number;
+  price?: number;
+  retail_price?: number;
+  category?: string;
+  type?: string;
+  vintage?: string;
+  year?: string;
+  bottle_size?: string;
+  size?: string;
+  status?: string;
+  active?: boolean;
 }
 
 export interface CreateProductRequest {
@@ -259,11 +274,28 @@ export class VinoshipperClient {
   /**
    * Normalizes product data from various API response formats
    */
+  private normalizeStatus(item: VinoshipperApiProduct): 'active' | 'inactive' | 'sold_out' | undefined {
+    if (item.status) {
+      const s = item.status.toLowerCase();
+      if (s === 'active') return 'active';
+      if (s === 'inactive') return 'inactive';
+      if (s === 'sold_out' || s === 'sold out') return 'sold_out';
+    }
+    if (item.active === false) return 'inactive';
+    if (item.active === true) return 'active';
+    return undefined;
+  }
+
   private normalizeProduct(item: VinoshipperApiProduct): VinoshipperProduct {
     return {
       sku: item.sku || item.product_code || item.id || 'UNKNOWN',
       name: item.name || item.title || item.description || 'Unnamed Product',
       quantity: item.quantity ?? item.stock ?? item.inventory_count ?? 0,
+      price: item.price ?? item.retail_price,
+      category: item.category || item.type,
+      vintage: item.vintage || item.year,
+      bottleSize: item.bottle_size || item.size,
+      status: this.normalizeStatus(item),
       lastSync: new Date(),
     };
   }

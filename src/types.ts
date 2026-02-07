@@ -9,6 +9,11 @@ export interface InventoryItem {
   sku: string;
   name: string;
   quantity: number;
+  price?: number;
+  category?: string;
+  vintage?: string;
+  bottleSize?: string;
+  status?: 'active' | 'inactive' | 'sold_out';
   lastSync?: Date;
 }
 
